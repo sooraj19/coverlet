@@ -1,7 +1,10 @@
-﻿using System;
+﻿using NUnit.Framework;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 
@@ -53,6 +56,7 @@ namespace Coverlet.Core.Instrumentation
         public static void RecordHit(int hitLocationIndex)
         {
             Interlocked.Increment(ref HitsArray[hitLocationIndex]);
+            PrintCodeMapHit();
         }
 
         public static void RecordSingleHitInCoreLibrary(int hitLocationIndex)
@@ -65,6 +69,8 @@ namespace Coverlet.Core.Instrumentation
             ref int location = ref HitsArray[hitLocationIndex];
             if (location == 0)
                 location = 1;
+
+            PrintCodeMapHit();
         }
 
         public static void RecordSingleHit(int hitLocationIndex)
@@ -72,6 +78,52 @@ namespace Coverlet.Core.Instrumentation
             ref int location = ref HitsArray[hitLocationIndex];
             if (location == 0)
                 location = 1;
+
+            PrintCodeMapHit();
+        }
+
+        private static void PrintCodeMapHit()
+        {
+            var st = new StackTrace(true);
+
+            var frames = new List<StackFrame>();
+            StackFrame nunitFrame = null;
+
+            foreach (var frame in st.GetFrames())
+            {
+                if (!String.IsNullOrEmpty(frame.GetFileName()))
+                {
+                    frames.Add(frame);
+                }
+
+                var attributes = frame.GetMethod().GetCustomAttributes();
+
+                foreach (var attribute in attributes)
+                {
+                    if (attribute.GetType().ToString() == typeof(TestAttribute).ToString())
+                    {
+                        nunitFrame = frame;
+                    }
+                }
+            }
+
+            //Console.WriteLine($"File [{frames[0].GetFileName()}, covered by test method [{nunitFrame?.GetMethod().Name}]");
+
+            //write to file
+            WriteCodeMapHitToFile(frames[0].GetFileName(), nunitFrame?.GetMethod().Name);
+        }
+
+        private static void WriteCodeMapHitToFile(string fileName, string testName)
+        {
+            string mapfile = @"C:\Workspace\hackweek\test-impact-analysis\codeMap.csv";
+            var mapData = $"{fileName},{testName}{Environment.NewLine}";
+
+            if (!File.Exists(mapfile))
+            {
+                File.WriteAllText(mapfile, mapData);
+            }
+
+            File.AppendAllText(mapfile, mapData);
         }
 
         public static void UnloadModule(object sender, EventArgs e)

@@ -82,7 +82,7 @@ namespace Coverlet.Console
                     logger.Level = verbosity.ParsedValue;
                 }
 
-                CoverageParameters parameters = new()
+                CoverageParameters parameters = new CoverageParameters()
                 {
                     IncludeFilters = includeFilters.Values.ToArray(),
                     IncludeDirectories = includeDirectories.Values.ToArray(),
@@ -99,7 +99,7 @@ namespace Coverlet.Console
 
                 ISourceRootTranslator sourceRootTranslator = serviceProvider.GetRequiredService<ISourceRootTranslator>();
 
-                Coverage coverage = new(moduleOrAppDirectory.Value,
+                Coverage coverage = new Coverage(moduleOrAppDirectory.Value,
                                                  parameters,
                                                  logger,
                                                  serviceProvider.GetRequiredService<IInstrumentationHelper>(),
@@ -108,7 +108,7 @@ namespace Coverlet.Console
                                                  serviceProvider.GetRequiredService<ICecilSymbolHelper>());
                 coverage.PrepareModules();
 
-                Process process = new();
+                Process process = new Process();
                 process.StartInfo.FileName = target.Value();
                 process.StartInfo.Arguments = targs.HasValue() ? targs.Value() : string.Empty;
                 process.StartInfo.CreateNoWindow = true;
